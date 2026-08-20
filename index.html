@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#2563eb">
+  <title>Parent Communication Manager Pro</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+  <div id="app">
+    <aside class="sidebar">
+      <div class="brand"><div class="brand-mark">PC</div><div><strong>Parent Communication</strong><small>Manager Pro</small></div></div>
+      <nav id="nav"></nav>
+      <div class="sidebar-bottom"><button id="themeBtn" class="ghost">☾ Theme</button><button id="lockBtn" class="ghost">🔒 Lock</button></div>
+    </aside>
+    <main class="main">
+      <header class="topbar"><button id="menuBtn" class="icon-btn">☰</button><div><h1 id="pageTitle">Dashboard</h1><p id="clock"></p></div><div class="top-actions"><button class="primary" data-route="composer">＋ New Message</button></div></header>
+      <section id="view"></section>
+    </main>
+  </div>
+  <div id="modalRoot"></div>
+  <div id="toastRoot"></div>
+  <script src="assets/app.js"></script>
+</body>
+</html>
