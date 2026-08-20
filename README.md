@@ -1,26 +1,35 @@
-# Parent Communication Manager Pro v2
+# Parent Communication Manager Pro
 
-GitHub Pages compatible, mobile-first, local-first teacher-parent communication app.
+A standalone, local-first teacher communication web app.
 
-## Upload
-Extract this ZIP and upload the **contents** into the repository root. `index.html` must be directly at the repository root.
+## Included
+- Student & parent directory
+- Smart message composer
+- Dynamic message variables
+- WhatsApp pre-filled sharing
+- Communication history
+- Follow-up manager
+- Announcements
+- Analytics
+- JSON backup/restore
+- CSV export
+- Printable reports
+- Dark/light theme
+- Responsive mobile UI
+- Attendance and fee context fields
+- Integration-ready structure for future Result/Attendance/Fee modules
 
-## Structure
-- Core: `index.html`, `404.html`, `manifest.webmanifest`, `sw.js`
-- CSS: global + dedicated feature styles + print styles
-- JS: core files plus dedicated feature module files named by the roadmap
-- Data: default templates and module manifest
-- Icons: PWA icons
+## Run
+Open `index.html` in a browser or deploy the folder to GitHub Pages.
 
-## Stability rules
-- Core storage key remains `pcm_pro_v2`.
-- Integration bridge reads external manager keys without overwriting them.
-- Feature module files are namespaced and safe to wire into the core later.
-- Existing core app code is preserved while modular roadmap files are added.
+## Important
+This build stores data in browser localStorage. Regularly export a JSON backup.
+WhatsApp sharing uses the normal `wa.me` web flow; it does not perform unattended bulk sending.
 
-## Validation performed
-- All JavaScript files checked with Node syntax validation.
-- All JSON files parsed successfully.
-- All index CSS/JS asset references checked for existence.
-- Required roadmap filenames verified.
-- PNG icons generated as valid files.
+## Future integration contract
+When connecting another module, keep the student `id` stable and map:
+- attendance -> `student.attendance`
+- fee due -> `student.feeDue`
+- result data -> future result adapter
+
+Do not replace the storage key `pcm_pro_v1` without a migration plan.
