@@ -7,7 +7,7 @@ const VERSION="2.0.0";
 const defaults={
  settings:{teacherName:"Teacher",coachingName:"EZEE VISION CHAMPUA",theme:"light",pinEnabled:false,pin:"",autoSave:true,lowAttendance:75},
  students:[],templates:[],messages:[],followups:[],announcements:[],activity:[],scheduled:[],
- selectedStudents:[], archived:[]
+ selectedStudents:[], archived:[], automation:{enabled:true,lastRun:"",alerts:[],autoDrafts:true}
 };
 const state={...structuredClone(defaults),view:"dashboard",editingId:null,historyFilter:"all",studentFilter:"all",studentSearch:"",historySearch:""};
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
@@ -31,6 +31,11 @@ function load(){
   });
  }catch(e){console.warn("Load failed",e)}
  if(!state.templates.length) state.templates=seedTemplates();
+ if(!state.automation || typeof state.automation!=="object") state.automation={enabled:true,lastRun:"",alerts:[],autoDrafts:true};
+ if(!Array.isArray(state.automation.alerts)) state.automation.alerts=[];
+ if(typeof state.automation.enabled!=="boolean") state.automation.enabled=true;
+ if(typeof state.automation.autoDrafts!=="boolean") state.automation.autoDrafts=true;
+ save();
 }
 function save(){
  const payload={};
@@ -49,6 +54,75 @@ function seedTemplates(){return[
 {id:uid(),name:"Parent Meeting",type:"Parent Meeting",text:"Dear {{parent_name}},\n\nWe would like to discuss {{student_name}}'s progress. Please contact us for a convenient meeting time.\n\nRegards,\n{{teacher_name}}"},
 {id:uid(),name:"General Notice",type:"General Announcement",text:"Dear Parents,\n\n{{message}}\n\nThank you.\n{{coaching_name}}"}
 ]}
+
+function safeSave(){
+ try{
+  const payload={};
+  Object.keys(defaults).forEach(k=>payload[k]=state[k]);
+  localStorage.setItem(KEY,JSON.stringify(payload));
+  return true;
+ }catch(e){console.warn("Storage save failed",e);toast("Could not save data. Export a backup.","bad");return false}
+}
+function automationKey(type,id,date=today()){return `${type}:${id}:${date}`}
+function smartAutomation(){
+ if(!state.automation?.enabled) return;
+ const date=today();
+ const alerts=Array.isArray(state.automation.alerts)?state.automation.alerts:[];
+ const hasAlert=(key)=>alerts.some(a=>a.key===key);
+ const addAlert=(type,id,title,text)=>{
+  const key=automationKey(type,id,date);
+  if(hasAlert(key)) return;
+  alerts.unshift({id:uid(),key,type,title,text,date,read:false});
+ };
+ state.students.forEach(st=>{
+  if(st.attendance!=="" && Number(st.attendance)<Number(state.settings.lowAttendance||75)){
+   addAlert("attendance",st.id,"Low attendance",`${st.name} is at ${st.attendance}% attendance.`);
+   const key=automationKey("attendance-followup",st.id,date);
+   if(!state.followups.some(f=>f.autoKey===key&&!f.done)){
+    state.followups.unshift({id:uid(),studentId:st.id,studentName:st.name,due:date,
+      note:`Auto follow-up: attendance is ${st.attendance}%, below ${state.settings.lowAttendance}%.`,
+      done:false,autoKey:key});
+   }
+   if(state.automation.autoDrafts){
+    const mkey=automationKey("attendance-draft",st.id,date);
+    if(!state.messages.some(m=>m.autoKey===mkey)){
+      const text=vars("Dear {{parent_name}},\n\nThis is an automated attendance alert for {{student_name}}. Current attendance is {{attendance}}%. Please help us maintain regular attendance.\n\nRegards,\n{{teacher_name}}",st);
+      state.messages.unshift({id:uid(),studentId:st.id,studentName:st.name,parent:st.parent||"",
+        type:"Attendance Alert",message:text,date:nowISO(),status:"Auto-Draft",autoKey:mkey});
+    }
+   }
+  }
+  if(Number(st.feeDue||0)>0){
+   addAlert("fee",st.id,"Fee due",`${st.name} has ₹${Number(st.feeDue).toLocaleString("en-IN")} outstanding.`);
+   const key=automationKey("fee-followup",st.id,date);
+   if(!state.followups.some(f=>f.autoKey===key&&!f.done)){
+    state.followups.unshift({id:uid(),studentId:st.id,studentName:st.name,due:date,
+      note:`Auto follow-up: fee due ₹${Number(st.feeDue).toLocaleString("en-IN")}.`,
+      done:false,autoKey:key});
+   }
+   if(state.automation.autoDrafts){
+    const mkey=automationKey("fee-draft",st.id,date);
+    if(!state.messages.some(m=>m.autoKey===mkey)){
+      const text=vars("Dear {{parent_name}},\n\nThis is a gentle reminder that ₹{{amount}} is pending for {{student_name}}.\nPlease clear the pending fee at your convenience.\n\nRegards,\n{{teacher_name}}",st,{amount:st.feeDue});
+      state.messages.unshift({id:uid(),studentId:st.id,studentName:st.name,parent:st.parent||"",
+        type:"Fee Reminder",message:text,date:nowISO(),status:"Auto-Draft",autoKey:mkey});
+    }
+   }
+  }
+  if(!st.phone){
+   addAlert("contact",st.id,"Missing parent phone",`${st.name} has no parent phone number saved.`);
+  }
+ });
+ state.automation.alerts=alerts.slice(0,120);
+ state.automation.lastRun=nowISO();
+ safeSave();
+}
+function runSmartAutomation(){
+ smartAutomation();
+ render();
+ toast("Smart automation completed","good");
+}
+
 function studentById(id){return state.students.find(s=>s.id===id)}
 function vars(text,s={},extra={}){
  const p={student_name:s.name||"",parent_name:s.parent||"",class:s.className||"",roll:s.roll||"",phone:s.phone||"",attendance:s.attendance??"—",amount:extra.amount??s.feeDue??"0",month:new Date().toLocaleString("en-IN",{month:"long",year:"numeric"}),date:extra.date||today(),teacher_name:state.settings.teacherName,coaching_name:state.settings.coachingName,message:extra.message||"",type:extra.type||""};
@@ -81,6 +155,13 @@ function dashboardView(){
  <div class="stat"><div class="label">LOW ATTENDANCE</div><div class="value">${low}</div><div class="sub">Below ${state.settings.lowAttendance}%</div></div>
  <div class="stat"><div class="label">FEE FOLLOW-UP</div><div class="value">${due}</div><div class="sub">${pending} follow-up(s) pending</div></div>
  </div>
+ <div class="card automation-card" style="margin-bottom:16px"><div class="card-head"><div><div class="card-title">⚡ Smart Automation</div><div class="small muted">Automatic risk scan, follow-ups and message drafts.</div></div><button class="btn btn-primary" data-action="run-automation">Run Now</button></div>
+ <div class="grid three">
+  <div class="mini-stat"><b>${state.automation.alerts.length}</b><span>Smart alerts</span></div>
+  <div class="mini-stat"><b>${state.followups.filter(f=>!f.done&&f.autoKey).length}</b><span>Auto follow-ups</span></div>
+  <div class="mini-stat"><b>${state.messages.filter(m=>m.status==="Auto-Draft").length}</b><span>Auto message drafts</span></div>
+ </div>
+ <div class="small muted" style="margin-top:10px">Last scan: ${state.automation.lastRun?new Date(state.automation.lastRun).toLocaleString("en-IN"):"Not yet run"}</div></div>
  <div class="grid quick-grid">
  ${[["💬","New Message","compose"],["👨‍🎓","Add Student","students"],["📢","Announcement","announcements"],["🔔","Follow-up","followups"]].map(x=>`<button class="quick" data-go="${x[2]}"><span style="font-size:24px">${x[0]}</span><b>${x[1]}</b><small class="muted">Open workspace →</small></button>`).join("")}
  </div>
@@ -198,6 +279,9 @@ function backupView(){const size=new Blob([JSON.stringify(state)]).size;return `
 
 function settingsView(){return `<div class="grid two"><div class="card"><div class="card-head"><div><div class="card-title">Profile & Preferences</div></div></div><div class="form-grid"><div class="field"><label>Teacher Name</label><input id="setTeacher" value="${esc(state.settings.teacherName)}"></div><div class="field"><label>Coaching / School Name</label><input id="setCoaching" value="${esc(state.settings.coachingName)}"></div><div class="field"><label>Low Attendance Threshold %</label><input id="setAttendance" type="number" min="1" max="100" value="${esc(state.settings.lowAttendance)}"></div></div><button class="btn btn-primary" style="margin-top:14px" data-action="save-settings">Save Settings</button></div>
  <div class="card"><div class="card-title">Privacy & Protection</div><div class="switch-row"><span><b>PIN Lock</b><div class="small muted">Protect opening the app on this device.</div></span><button class="switch ${state.settings.pinEnabled?"on":""}" data-action="toggle-pin"></button></div><div class="switch-row"><span><b>Auto Save</b><div class="small muted">Save changes to local storage automatically.</div></span><button class="switch ${state.settings.autoSave!==false?"on":""}" data-action="toggle-autosave"></button></div><div class="switch-row"><span><b>Dark Mode</b><div class="small muted">Comfortable low-light interface.</div></span><button class="switch ${state.settings.theme==="dark"?"on":""}" data-action="toggle-theme"></button></div></div></div>
+ <div class="card" style="margin-top:16px"><div class="card-head"><div><div class="card-title">⚡ Automation</div><div class="small muted">Runs when the app opens and every time you tap Run Now.</div></div><button class="btn btn-primary" data-action="run-automation">Run Smart Scan</button></div>
+ <div class="switch-row"><span><b>Smart Automation</b><div class="small muted">Create risk alerts and follow-ups for low attendance and fee dues.</div></span><button class="switch ${state.automation.enabled?"on":""}" data-action="toggle-automation"></button></div>
+ <div class="switch-row"><span><b>Auto Message Drafts</b><div class="small muted">Prepare personalized WhatsApp drafts; sending remains under your control.</div></span><button class="switch ${state.automation.autoDrafts?"on":""}" data-action="toggle-auto-drafts"></button></div></div>
  <div class="card" style="margin-top:16px"><div class="card-head"><div><div class="card-title">Data Management</div></div></div><div class="actions"><button class="btn btn-secondary" data-action="demo-data">Load Demo Data</button><button class="btn btn-danger" data-action="clear-data">Reset App</button></div></div>`}
 
 function csv(){const rows=[["Name","Roll","Class","Parent","Phone","Email","Attendance","Fee Due","DOB","Tags","Notes"],...state.students.map(s=>[s.name,s.roll,s.className,s.parent,s.phone,s.email,s.attendance,s.feeDue,s.dob,s.tags,s.notes])];return rows.map(r=>r.map(v=>`"${String(v??"").replace(/"/g,'""')}"`).join(",")).join("\n")}
@@ -233,13 +317,30 @@ document.addEventListener("click",e=>{
  if(b.matches("[data-close]"))return closeModal();
  if(b.matches("[data-go]"))return navigate(b.dataset.go);
  if(b.matches("[data-view]"))return navigate(b.dataset.view);
- const a=b.dataset.action;
+ const a=b.dataset.action ||
+   (b.dataset.editStudent ? "edit-student" :
+   b.dataset.archiveStudent ? "archive-student" :
+   b.dataset.restoreStudent ? "restore-student" :
+   b.dataset.messageStudent ? "message-student" :
+   b.dataset.editTemplate ? "edit-template" :
+   b.dataset.deleteTemplate ? "delete-template" :
+   b.dataset.duplicateTemplate ? "duplicate-template" :
+   b.dataset.completeFollowup ? "complete-followup" :
+   b.dataset.deleteFollowup ? "delete-followup" :
+   b.dataset.deleteMessage ? "delete-message" :
+   b.dataset.saveStudent !== undefined ? "save-student" :
+   b.dataset.saveTemplate !== undefined ? "save-template" :
+   b.dataset.savePin !== undefined ? "save-pin" :
+   b.dataset.unlock !== undefined ? "unlock" :
+   b.dataset.addFollowup !== undefined ? "add-followup" :
+   b.dataset.openFirstAnnouncement !== undefined ? "open-first-announcement" : "");
  if(a==="add-student")return openStudent();
  if(a==="edit-student")return openStudent(b.dataset.id);
  if(a==="message-student"){navigate("compose");setTimeout(()=>{$("#composeStudent").value=b.dataset.id;updateComposePreview()},0);return}
  if(a==="archive-student")return archiveStudent(b.dataset.id);
  if(a==="restore-student")return restoreStudent(b.dataset.id);
  if(a==="add-template")return openTemplate();
+ if(a==="add-followup")return openFollowup();
  if(a==="edit-template")return openTemplate(b.dataset.id);
  if(a==="delete-template"){if(confirm("Delete this template?")){state.templates=state.templates.filter(x=>x.id!==b.dataset.id);save();render();toast("Template deleted","good")}return}
  if(a==="duplicate-template"){const t=state.templates.find(x=>x.id===b.dataset.id);if(t){state.templates.push({...t,id:uid(),name:t.name+" Copy"});activity("template","Duplicated "+t.name);save();render();toast("Template duplicated","good")}return}
@@ -249,6 +350,7 @@ document.addEventListener("click",e=>{
  if(a==="complete-followup"){const f=state.followups.find(x=>x.id===b.dataset.id);if(f){f.done=true;activity("followup","Completed follow-up for "+f.studentName);save();render();toast("Follow-up completed","good")}return}
  if(a==="delete-followup"){state.followups=state.followups.filter(x=>x.id!==b.dataset.id);save();render();return}
  if(a==="delete-message"){state.messages=state.messages.filter(x=>x.id!==b.dataset.id);save();render();return}
+ if(a==="run-automation")return runSmartAutomation();
  if(a==="generate-message")return updateComposePreview();
  if(a==="copy-compose"){const text=$("#composePreview")?.textContent||"";navigator.clipboard?.writeText(text).then(()=>toast("Message copied","good")).catch(()=>toast("Copy permission unavailable","warn"));return}
  if(a==="whatsapp-compose"){const s=studentById($("#composeStudent")?.value);const text=$("#composePreview")?.textContent||"";if(s&&text){if(whatsapp(s,text)){logMessage(s,text,$("#composeType").value,"Opened");activity("message","Opened WhatsApp for "+s.name);render()}}return}
@@ -264,6 +366,8 @@ document.addEventListener("click",e=>{
  if(a==="toggle-theme"){document.body.classList.toggle("dark");state.settings.theme=document.body.classList.contains("dark")?"dark":"light";save();return}
  if(a==="save-settings"){state.settings.teacherName=$("#setTeacher").value.trim()||"Teacher";state.settings.coachingName=$("#setCoaching").value.trim()||"EZEE VISION CHAMPUA";state.settings.lowAttendance=Math.max(1,Math.min(100,Number($("#setAttendance").value||75)));save();render();toast("Settings saved","good");return}
  if(a==="toggle-autosave"){state.settings.autoSave=state.settings.autoSave===false;save();render();return}
+ if(a==="toggle-automation"){state.automation.enabled=!state.automation.enabled;save();if(state.automation.enabled)smartAutomation();render();toast(state.automation.enabled?"Smart automation enabled":"Smart automation disabled","good");return}
+ if(a==="toggle-auto-drafts"){state.automation.autoDrafts=!state.automation.autoDrafts;save();render();toast(state.automation.autoDrafts?"Auto drafts enabled":"Auto drafts disabled","good");return}
  if(a==="toggle-pin"){if(state.settings.pinEnabled){state.settings.pinEnabled=false;state.settings.pin="";save();render();toast("PIN lock disabled","good")}else askPin();return}
  if(a==="save-pin"){const p=$("#pinValue").value.trim();if(!/^\d{4,8}$/.test(p)){toast("PIN must be 4–8 digits","bad");return}state.settings.pin=p;state.settings.pinEnabled=true;save();closeModal();render();toast("PIN lock enabled","good");return}
  if(a==="unlock"){if($("#unlockPin").value===state.settings.pin){$("#lockScreen").classList.add("hidden");toast("Unlocked","good")}else toast("Wrong PIN","bad");return}
@@ -276,12 +380,15 @@ document.addEventListener("keydown",e=>{if(e.key==="Escape")closeModal();if(e.ke
 $("#mobileMenu").onclick=()=>$("#sidebar").classList.toggle("open");
 $("#themeBtn").onclick=()=>{document.body.classList.toggle("dark");state.settings.theme=document.body.classList.contains("dark")?"dark":"light";save();render()};
 $("#teacherAvatar").onclick=()=>navigate("settings");
-$("#notifyBtn").onclick=()=>{const overdue=state.followups.filter(f=>!f.done&&f.due<=today());modal("Notifications",`${overdue.length?overdue.map(f=>`<div class="notice warn" style="margin-bottom:8px">🔔 ${esc(f.studentName)} — ${esc(f.note)} (${esc(f.due)})</div>`).join(""):`<div class="notice good">✓ No overdue follow-ups.</div>`}`)};
+$("#notifyBtn").onclick=()=>{const overdue=state.followups.filter(f=>!f.done&&f.due<=today());const smart=state.automation.alerts.filter(a=>!a.read);modal("Notifications",`${smart.length?smart.map(a=>`<div class="notice warn" style="margin-bottom:8px">⚡ <b>${esc(a.title)}</b><br>${esc(a.text)}</div>`).join(""):""}${overdue.length?overdue.map(f=>`<div class="notice warn" style="margin-bottom:8px">🔔 ${esc(f.studentName)} — ${esc(f.note)} (${esc(f.due)})</div>`).join(""):`<div class="notice good">✓ No overdue follow-ups.</div>`}`)};
 function tick(){$("#liveDate").textContent=new Date().toLocaleString("en-IN",{weekday:"short",day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit"});$("#notifyDot").style.cssText=state.followups.some(f=>!f.done&&f.due<=today())?"display:block;position:absolute;width:7px;height:7px;background:#ef4444;border-radius:50%;margin:-29px 0 0 24px":"display:none"}
 function addDemoData(){
  const names=[["Aarav Kumar","Mrs. Kumar","10 A","9876543210",82,500],["Ananya Das","Mr. Das","9 B","9876543211",68,1200],["Rohan Singh","Mrs. Singh","10 A","9876543212",91,0],["Meera Patnaik","Mr. Patnaik","8 A","9876543213",74,800]];
  names.forEach(x=>state.students.push({id:uid(),name:x[0],parent:x[1],className:x[2],phone:x[3],attendance:x[4],feeDue:x[5],roll:String(state.students.length+1),tags:"demo",notes:"Sample record",created:nowISO()}));
  const s=state.students[0];logMessage(s,vars("Dear {{parent_name}}, this is a sample message for {{student_name}}.",s),"General");state.followups.push({id:uid(),studentId:s.id,studentName:s.name,due:today(),note:"Sample follow-up",done:false});activity("demo","Loaded sample teacher data");save();
 }
+window.addEventListener("beforeunload",()=>safeSave());
+setInterval(()=>{if(state.settings.autoSave!==false) safeSave();},15000);
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="hidden")safeSave()});
 window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();window.__installPrompt=e});
-load();if(state.settings.theme==="dark")document.body.classList.add("dark");navigate("dashboard");tick();setInterval(tick,30000);checkPin();
+load();if(state.settings.theme==="dark")document.body.classList.add("dark");smartAutomation();navigate("dashboard");tick();setInterval(tick,30000);checkPin();
