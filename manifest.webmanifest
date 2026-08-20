@@ -2,10 +2,9 @@
   "name": "Parent Communication Manager Pro",
   "short_name": "ParentComm Pro",
   "start_url": "./index.html",
-  "scope": "./",
   "display": "standalone",
-  "background_color": "#f6f8fc",
-  "theme_color": "#2563eb",
-  "description": "Professional teacher-parent communication manager",
+  "background_color": "#f4f7fb",
+  "theme_color": "#111827",
+  "description": "Local-first parent communication manager for teachers.",
   "icons": []
 }
