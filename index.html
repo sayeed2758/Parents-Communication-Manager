@@ -356,5 +356,7 @@ navigate("dashboard");tick();setInterval(tick,30000);setTimeout(bind,0);
 setInterval(()=>{const overdue=state.followups.filter(f=>!f.done&&f.due<=today());if(overdue.length)toast(`${overdue.length} follow-up(s) due today`,"")},60000);
 
 </script><script>if("serviceWorker" in navigator && location.protocol!=="file:"){navigator.serviceWorker.register("sw.js").catch(()=>{});}</script>
+  <link rel="stylesheet" href="assets/css/style.css">
+<script src="assets/js/app.js"></script>
 </body>
 </html>
