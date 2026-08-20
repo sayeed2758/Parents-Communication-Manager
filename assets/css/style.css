@@ -28,3 +28,21 @@ button,input,textarea,select{font:inherit}button{cursor:pointer}
 @media(max-width:1080px){.stats{grid-template-columns:repeat(2,1fr)}.quick-grid{grid-template-columns:repeat(2,1fr)}.two{grid-template-columns:1fr}.template-grid,.three{grid-template-columns:1fr}}
 @media(max-width:760px){.sidebar{transform:translateX(-105%);transition:.2s}.sidebar.open{transform:none}.main{margin-left:0;width:100%;padding:0 13px 30px}.mobile-menu{display:block}.topbar{height:76px}.topbar h1{font-size:21px}.live-date{display:none}.stats,.quick-grid,.form-grid,.split{grid-template-columns:1fr}.card,.stat{padding:15px}.toolbar{align-items:stretch}.toolbar .actions{width:100%}.search{width:100%;min-width:100%}.btn{flex:0 0 auto}.table{min-width:760px}}
 @media print{.sidebar,.topbar,.no-print,.btn,.icon-btn{display:none!important}.main{margin:0;width:100%;padding:0}.view{display:none!important}.view.print-target{display:block!important}.card,.stat{box-shadow:none;border:0}}
+
+/* v2.1 reliability + automation polish */
+button, input, select, textarea { font: inherit; }
+button { cursor: pointer; }
+button:disabled { opacity:.55; cursor:not-allowed; }
+.mini-stat{padding:14px;border:1px solid var(--line);border-radius:14px;background:var(--panel);display:flex;flex-direction:column;gap:4px}
+.mini-stat b{font-size:22px}.mini-stat span{font-size:12px;color:var(--muted)}
+.automation-card{border:1px solid rgba(79,70,229,.22);background:linear-gradient(135deg,rgba(79,70,229,.07),rgba(14,165,233,.05))}
+@media(max-width:760px){
+  .app-shell{display:block}.sidebar{position:fixed;z-index:50;transform:translateX(-110%);transition:.2s}
+  .sidebar.open{transform:translateX(0)}.main{width:100%;min-width:0}
+  .topbar{padding:12px}.top-actions .live-date{display:none}
+  .grid.two,.grid.three,.grid.split{grid-template-columns:1fr!important}
+  .toolbar{align-items:stretch}.toolbar .actions{width:100%}.toolbar .actions>*{max-width:100%}
+  .table-wrap{overflow-x:auto}.table{min-width:680px}
+  .modal{width:calc(100vw - 24px);max-height:90vh;overflow:auto}
+  .form-grid{grid-template-columns:1fr!important}.field.full{grid-column:auto!important}
+}
