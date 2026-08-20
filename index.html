@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#2563eb">
+<meta name="description" content="Parent Communication Manager Pro v2 — teacher-parent communication, history, follow-ups, announcements, analytics and backup.">
+<title>Parent Communication Manager Pro v2</title>
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="stylesheet" href="./assets/css/style.css">
+<style id="critical-ui">
+html,body{margin:0;background:#f6f8fc;color:#142033;font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+*{box-sizing:border-box}button,input,select,textarea{font:inherit}button{cursor:pointer}.app-shell{min-height:100vh;display:flex}.sidebar{width:270px;flex:0 0 270px;background:#fff;border-right:1px solid #e5eaf2}.main{flex:1;min-width:0}.topbar{height:72px;background:#fff;border-bottom:1px solid #e5eaf2;display:flex;align-items:center;padding:0 22px;gap:15px;position:sticky;top:0;z-index:20}.content{padding:24px;max-width:1500px;margin:auto}.card{background:#fff;border:1px solid #e5eaf2;border-radius:18px;padding:18px;box-shadow:0 8px 26px rgba(24,40,72,.06)}
+</style>
+</head>
+<body>
+<div id="app" class="app-shell">
+  <aside id="sidebar" class="sidebar"></aside>
+  <main class="main">
+    <header class="topbar">
+      <button id="menuBtn" class="icon-btn mobile-only" aria-label="Open menu">☰</button>
+      <div class="title-block"><h1 id="pageTitle">Dashboard</h1><p id="liveClock"></p></div>
+      <div class="topbar-actions">
+        <button class="btn btn-primary" data-route="composer">＋ New Message</button>
+        <button id="themeToggle" class="btn btn-ghost" aria-label="Toggle theme">◐</button>
+      </div>
+    </header>
+    <section id="view" aria-live="polite"></section>
+  </main>
+</div>
+<div id="modalRoot"></div>
+<div id="toastRoot"></div>
+<div id="lockRoot"></div>
+<script type="module" src="./assets/js/app.js"></script>
+<script>
+  window.__PCM_BOOT__ = { version: "2.0.0", root: "./" };
+</script>
+</body>
+</html>
