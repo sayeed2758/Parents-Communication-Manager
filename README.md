@@ -1,105 +1,49 @@
-# Parent Communication Manager Pro v2 Advanced
+# Parent Communication Manager Pro v2.1 — AUTOMATED + FIXED
 
-GitHub Pages-ready, local-first teacher productivity system.
+## What is fixed
+- All dynamic buttons now work through a single resilient event-delegation layer.
+- Template Edit / Duplicate / Delete buttons fixed.
+- Student Edit / Archive / Restore / WhatsApp buttons fixed.
+- Follow-up Add / Complete / Delete fixed.
+- Message Delete fixed.
+- PIN Save / Unlock fixed.
+- Announcement first-recipient action fixed.
+- Automatic save every 15 seconds + on tab hide + before page unload.
+- Smart automation scans on app startup and on demand.
+- Smart automation creates low-attendance and fee-due alerts.
+- Smart automation can create follow-ups automatically.
+- Smart automation can create personalized WhatsApp message drafts.
+- Existing localStorage data is migrated instead of being discarded.
+- Service-worker cache version bumped so the old broken JS is less likely to remain cached.
 
-## 50+ features
-1. Dashboard KPI cards
-2. Live date/time
-3. Student CRUD
-4. Parent/guardian contacts
-5. WhatsApp phone field
-6. Email field
-7. Class/section field
-8. Roll number
-9. Attendance percentage
-10. Configurable low-attendance threshold
-11. Fee due tracking
-12. Student DOB
-13. Student tags
-14. Student notes
-15. Student search
-16. Student filters
-17. Archive students
-18. Restore archived students
-19. Multi-select students
-20. Bulk-message preparation
-21. Reusable templates
-22. Template variables
-23. Template edit
-24. Template duplicate
-25. Template delete
-26. Live message preview
-27. Copy message
-28. WhatsApp opener
-29. Message history
-30. History search
-31. History status filter
-32. Delete history records
-33. Communication types
-34. Class-based announcements
-35. All-parent announcements
-36. Announcement history
-37. Follow-up tracker
-38. Overdue follow-up alerts
-39. Complete follow-up
-40. Delete follow-up
-41. Notification panel
-42. Communication analytics
-43. Six-month message chart
-44. Message-type analytics
-45. Class attendance overview
-46. Contact coverage analytics
-47. Total fee-due analytics
-48. JSON backup
-49. JSON restore
-50. Student CSV export
-51. Student CSV import
-52. Printable directory
-53. Printable communication history
-54. Dark mode
-55. Local PIN lock
-56. Auto-save preference
-57. Demo-data loader
-58. Full app reset
-59. Keyboard shortcuts
-60. Offline PWA/service-worker support
-61. Mobile responsive navigation
-62. Toast feedback
-63. Form validation
-64. Recent activity timeline
-65. Local storage usage indicator
+## Smart automation
+The app can automatically:
+1. Detect students below the configured attendance threshold.
+2. Detect students with fee dues.
+3. Detect missing parent phone numbers.
+4. Create daily smart alerts.
+5. Create one daily follow-up per risk type/student.
+6. Prepare personalized message drafts using template variables.
 
-## File structure
+### Important
+This is a GitHub Pages / browser-only system. It cannot silently send WhatsApp messages in the background because GitHub Pages has no server-side messaging service. The app prepares the message and opens WhatsApp; the teacher remains in control of sending.
 
-```text
+## Upload
+Extract this ZIP and upload/replace the complete structure:
+
 index.html
 manifest.webmanifest
 sw.js
-assets/
-  css/
-    style.css
-  js/
-    app.js
+assets/css/style.css
+assets/js/app.js
 README.md
-```
 
-## GitHub Pages deployment
+Do NOT keep an older app.js or style.css that conflicts with these files.
 
-Upload the files exactly in the structure above. Do not flatten `assets/css/style.css` or `assets/js/app.js`.
+After upload:
+1. Commit to main.
+2. Wait for GitHub Pages to redeploy.
+3. Open the site.
+4. If the old screen still appears, clear the site's browser cache/site data once and reload.
 
-`index.html` loads:
-- `./assets/css/style.css`
-- `./assets/js/app.js`
-
-The service worker cache is versioned as `pcm-pro-v2-advanced`.
-
-### Important after replacing an old version
-
-Because service workers can keep old files cached, if an old screen still appears:
-1. Open the GitHub Pages site.
-2. Clear that site's browser data/cache once.
-3. Reopen the site.
-
-## Data model
-
-All app data is stored locally in the browser under `pcm_pro_v2`. Export JSON regularly if the data matters.
+GitHub Pages publishes static files directly from the repository, and project sites use the repository path in the URL.
